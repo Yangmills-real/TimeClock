@@ -1340,14 +1340,16 @@ class ClockApp:
 
         # ---- 列 0：大时间 +（右下角）秒 / 上午下午 ----
         clock = tk.Frame(main, bg=BG_COLOR)
-        clock.grid(row=0, column=0, sticky="nsw")
+        # ★ 贴顶（nw）：时间的 y 位置只由顶栏高度决定，
+        #   不会因为中间列多一行/少一行而上下跳。
+        clock.grid(row=0, column=0, sticky="nw")
         self.lbl_hhmm = tk.Label(clock, text="", font=self.f_hhmm,
                                  fg=FG_SILVER, bg=BG_COLOR)
-        self.lbl_hhmm.pack(side="left", anchor="s")
+        self.lbl_hhmm.pack(side="left", anchor="n")
 
         # 右侧竖排小字：秒在上、AM/PM 在下（都贴右下角，不抢主时间焦点）
         tail = tk.Frame(clock, bg=BG_COLOR)
-        tail.pack(side="left", anchor="s", padx=(4, 0), pady=(0, 8))
+        tail.pack(side="left", anchor="n", padx=(4, 0), pady=(4, 0))
         self.lbl_ss = tk.Label(tail, text="", font=self.f_ss,
                                fg=FG_DIM, bg=BG_COLOR, anchor="e")
         self.lbl_ss.pack(anchor="e")
@@ -1358,7 +1360,7 @@ class ClockApp:
 
         # ---- 列 1：日期 / 节假日 / 明天是（左对齐纵向堆叠）----
         info = tk.Frame(main, bg=BG_COLOR)
-        info.grid(row=0, column=1, sticky="w", padx=(12, 2))
+        info.grid(row=0, column=1, sticky="nw", padx=(12, 2))
         # 我方休息提示（红色小字，放在日期上方）
         self.lbl_rest_mine = tk.Label(info, text="", font=(f, SIZE_SMALL),
                                       fg=COLOR_REST, bg=BG_COLOR, anchor="w")
@@ -1381,7 +1383,7 @@ class ClockApp:
 
         # ---- 列 2：第二时区（右对齐两行）----
         tz2f = tk.Frame(main, bg=BG_COLOR)
-        tz2f.grid(row=0, column=2, sticky="e", padx=(0, 8))
+        tz2f.grid(row=0, column=2, sticky="ne", padx=(0, 8))
         self.lbl_tz2 = tk.Label(tz2f, text="", font=self.f_tz2,
                                 fg=COLOR_NORMAL, bg=BG_COLOR, anchor="e")
         self.lbl_tz2.pack(anchor="e")
