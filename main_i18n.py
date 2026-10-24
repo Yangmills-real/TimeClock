@@ -94,7 +94,7 @@ WINDOW_ALPHA = 0.90
 # ★ 扁平长条布局：宽 820、高约 120（有节假日时会自动长高一点）
 WIN_WIDTH = 1090                 # 固定宽度，保证折行宽度稳定
 WIN_MIN_H = 185               # 高度下限（多了一行副语言日期，+25）
-WIN_MAX_H = 240                 # 高度上限（内容再多也不无限长）
+WIN_MAX_H = 340                  # 高度上限（长语言折行时也能装下）                 # 高度上限（内容再多也不无限长）
 TOP_H = 30                      # 顶栏高度（⚙ + 时区框 + 番茄钟 + 🔄 + ⬇）
 WRAP_BASE = 500                 # 中间「日期/节假日」列的折行基准宽度
 
@@ -1777,6 +1777,15 @@ class ClockApp:
 
         # ---- 番茄钟 ----
         self._refresh_pomo()
+
+        # ★ 内容签名：只要有任何一个字变了（含语言切换导致的行数变化），
+        #   就重算窗口高度。否则切到法语/俄语时右列折成两行会被切掉。
+        sig = (date1, date2, line or "", eve or "", rest1,
+               t("rest_theirs", st.primary) if rest2 else "",
+               st.primary, st.secondary, st.tz, st.tz2)
+        if sig != getattr(self, "_last_sig", None):
+            self._last_sig = sig
+            relayout = True
 
         if relayout:
             self.root.after_idle(self._relayout)
