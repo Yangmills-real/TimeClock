@@ -1,0 +1,46 @@
+# ============================================================
+#  TimeClock i18n — 请勿提交的内容
+# ============================================================
+
+# 本机配置（含语言/时区/快捷键/窗口位置）
+config.json
+config.local.json
+*.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+build/
+dist/
+*.spec
+*.egg-info/
+
+# 日志与临时文件
+*.log
+*.bak
+*.tmp
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+# 凭据类：万一有人把私钥放进项目目录，也不能提交
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.pem
+*.key
+*.ppk
+*.pub
+.env
+.env.*
+secrets.*

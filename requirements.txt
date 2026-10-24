@@ -1,0 +1,6 @@
+# 国际化时钟依赖
+# 安装： pip install -r requirements.txt
+
+holidays>=0.60          # 节假日数据（501 个国家/地区）
+chinesecalendar>=1.9    # 中国调休/补班（可选：缺了只是没有"调休上班"标记）
+tzdata>=2024.1          # Windows 没有 IANA 时区库，zoneinfo 需要它
