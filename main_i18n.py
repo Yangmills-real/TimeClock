@@ -125,8 +125,18 @@ HOTKEY_POLL_MS = 80
 PIN_TEXT_UP = "⬇"
 PIN_TEXT_DOWN = "📌"
 
+TZ2_WRAP = 200                  # 右列折行宽度（超长就折行，不截断）
 # 时钟刷新
 CLOCK_TICK_MS = 200             # 200ms 刷新一次，切时区无延迟感
+
+# ---- 休息时段提醒 ----
+# ★ 某时区落在 [23:00, 次日 07:00) 就认为"可能在休息"：
+#   该时区的时间变红，并在旁边提示「我方可能在休息 / 对方可能在休息」。
+#   12 小时制下也是同一个区间（"下午 11 点 → 次日上午 7 点"），
+#   因为判断用的是 24 小时制的钟点，和显示制式无关。
+REST_START_HOUR = 23            # 开始算休息的小时（含）
+REST_END_HOUR = 7               # 结束的小时（不含）
+COLOR_REST = "#ff4d4f"          # 休息提示用红色
 
 DEFAULT_TZ = "Asia/Shanghai"
 DEFAULT_TZ2 = "America/Los_Angeles"      # 第二时区（可设为不显示）
@@ -396,15 +406,23 @@ LANGUAGE_DICT = {
 # 快捷键相关的补充文案（单独一张表，方便以后加语言时不碰主字典）
 _EXTRA_I18N = {
     "zh": {"hotkey": "全局快捷键", "press_keys": "按下组合键…",
-           "hotkey_off": "（未启用）", "need_modifier": "需带 Ctrl/Alt/Shift"},
+           "hotkey_off": "（未启用）", "need_modifier": "需带 Ctrl/Alt/Shift",
+           "rest_mine": "我方可能在休息", "rest_theirs": "对方可能在休息"},
     "en": {"hotkey": "Global hotkey", "press_keys": "Press keys…",
-           "hotkey_off": "(disabled)", "need_modifier": "Need Ctrl/Alt/Shift"},
+           "hotkey_off": "(disabled)", "need_modifier": "Need Ctrl/Alt/Shift",
+           "rest_mine": "You may be resting", "rest_theirs": "They may be resting"},
     "fr": {"hotkey": "Raccourci global", "press_keys": "Appuyez…",
-           "hotkey_off": "(désactivé)", "need_modifier": "Avec Ctrl/Alt/Shift"},
+           "hotkey_off": "(désactivé)", "need_modifier": "Avec Ctrl/Alt/Shift",
+           "rest_mine": "Vous vous reposez peut-être",
+           "rest_theirs": "L'autre se repose peut-être"},
     "ru": {"hotkey": "Глобальная горячая клавиша", "press_keys": "Нажмите…",
-           "hotkey_off": "(отключено)", "need_modifier": "Нужен Ctrl/Alt/Shift"},
+           "hotkey_off": "(отключено)", "need_modifier": "Нужен Ctrl/Alt/Shift",
+           "rest_mine": "Возможно, вы отдыхаете",
+           "rest_theirs": "Возможно, они отдыхают"},
     "es": {"hotkey": "Atajo global", "press_keys": "Pulsa teclas…",
-           "hotkey_off": "(desactivado)", "need_modifier": "Con Ctrl/Alt/Shift"},
+           "hotkey_off": "(desactivado)", "need_modifier": "Con Ctrl/Alt/Shift",
+           "rest_mine": "Quizás estés descansando",
+           "rest_theirs": "Quizás esté descansando"},
 }
 for _k, _v in _EXTRA_I18N.items():
     LANGUAGE_DICT.setdefault(_k, {}).update(_v)
@@ -441,6 +459,22 @@ def month_name(month, lang):
 
 def fmt_date(d, lang):
     return t("date_fmt", lang).format(y=d.year, m=d.month, d=d.day)
+
+
+def is_resting(dt):
+    """
+    这个时刻是否落在休息时段（默认 23:00 – 次日 07:00）。
+
+    ★ 用 24 小时制的 hour 判断，所以 12 小时制下同样生效
+      （下午 11 点 = hour 23，上午 7 点 = hour 7）。
+    """
+    try:
+        h = dt.hour
+    except AttributeError:
+        return False
+    if REST_START_HOUR <= REST_END_HOUR:                 # 普通区间，如 1–6
+        return REST_START_HOUR <= h < REST_END_HOUR
+    return h >= REST_START_HOUR or h < REST_END_HOUR     # 跨零点，如 23–7
 
 
 def date_long(d, lang):
@@ -1325,6 +1359,9 @@ class ClockApp:
         # ---- 列 1：日期 / 节假日 / 明天是（左对齐纵向堆叠）----
         info = tk.Frame(main, bg=BG_COLOR)
         info.grid(row=0, column=1, sticky="w", padx=(12, 2))
+        # 我方休息提示（红色小字，放在日期上方）
+        self.lbl_rest_mine = tk.Label(info, text="", font=(f, SIZE_SMALL),
+                                      fg=COLOR_REST, bg=BG_COLOR, anchor="w")
         self.lbl_date = tk.Label(info, text="", font=self.f_date,
                                  fg=FG_SILVER, bg=BG_COLOR, anchor="w")
         self.lbl_date.pack(anchor="w")
@@ -1349,18 +1386,25 @@ class ClockApp:
                                 fg=COLOR_NORMAL, bg=BG_COLOR, anchor="e")
         self.lbl_tz2.pack(anchor="e")
         self.lbl_tz2_name = tk.Label(tz2f, text="", font=(f, SIZE_SMALL),
-                                     fg=FG_DIM, bg=BG_COLOR, anchor="e")
+                                     fg=FG_DIM, bg=BG_COLOR, anchor="e",
+                                     justify="right", wraplength=TZ2_WRAP)
         self.lbl_tz2_name.pack(anchor="e")
         # 第二时区的日期 + 星期（带节假日/周末配色）
         self.lbl_tz2_date = tk.Label(tz2f, text="", font=self.f_tz2_date,
-                                     fg=FG_DIM, bg=BG_COLOR, anchor="e")
+                                     fg=FG_DIM, bg=BG_COLOR, anchor="e",
+                                     justify="right", wraplength=TZ2_WRAP)
         self.lbl_tz2_date.pack(anchor="e")
+        # 对方休息提示（红色小字，放在最下方）
+        self.lbl_rest_theirs = tk.Label(tz2f, text="", font=self.f_tz2_date,
+                                        fg=COLOR_REST, bg=BG_COLOR, anchor="e",
+                                        justify="right", wraplength=TZ2_WRAP)
 
         # ================= 拖拽：只绑"装饰性"控件 =================
         # 刻意不绑 combobox 和几个按钮，否则点下拉框会拖动窗口
         for w in (top, main, clock, tail, info, tz2f,
                   self.lbl_hhmm, self.lbl_ss, self.lbl_ampm, self.lbl_date,
                   self.lbl_holiday, self.lbl_eve, self.lbl_date2,
+                  self.lbl_rest_mine, self.lbl_rest_theirs,
                   self.lbl_tz2, self.lbl_tz2_name, self.lbl_tz2_date,
                   self.lbl_pomo):
             w.bind("<Button-1>", self._start_drag)
@@ -1605,6 +1649,15 @@ class ClockApp:
         line = holiday_line(now.date(), st.tz, st.primary, st.secondary)
         eve = eve_line(now.date(), st.tz, st.primary, st.secondary)
 
+        # 主时区是否在休息时段
+        rest1 = is_resting(now)
+        if not st.pinned:
+            self.lbl_hhmm.config(fg="#5b6066")           # 已沉底 → 变暗
+        elif rest1:
+            self.lbl_hhmm.config(fg=COLOR_REST)          # 休息中 → 变红
+        else:
+            self.lbl_hhmm.config(fg=FG_SILVER)
+
         date1 = fmt_date(now, st.primary) + "  " + weekday_name(now, st.primary)
         date2 = ""
         if st.secondary and st.secondary != st.primary:
@@ -1613,6 +1666,8 @@ class ClockApp:
 
         wrap = self._wrap_base()
         rows = (
+            (self.lbl_rest_mine, t("rest_mine", st.primary) if rest1 else "",
+             rest1),
             (self.lbl_date, date1, True),
             (self.lbl_date2, date2, bool(date2)),
             (self.lbl_holiday, line or "", bool(line)),
@@ -1634,7 +1689,8 @@ class ClockApp:
                 if prev is not None:
                     lbl.pack(anchor="w", after=prev)
                 else:
-                    lbl.pack(anchor="w")
+                    # 第一个可见行必须排在主日期【之前】（休息提示在日期上方）
+                    lbl.pack(anchor="w", before=self.lbl_date)
                 relayout = True
             elif not vis and lbl.winfo_ismapped():
                 lbl.pack_forget()
@@ -1682,6 +1738,19 @@ class ClockApp:
             else:
                 self.lbl_tz2_date.config(fg=FG_DIM)
 
+            # ---- 对方是否在休息时段 ----
+            rest2 = is_resting(n2)
+            self.lbl_tz2.config(fg=COLOR_REST if rest2 else COLOR_NORMAL)
+            if rest2:
+                self.lbl_rest_theirs.config(
+                    text=t("rest_theirs", st.primary))
+                if not self.lbl_rest_theirs.winfo_ismapped():
+                    self.lbl_rest_theirs.pack(anchor="e")
+                    relayout = True
+            elif self.lbl_rest_theirs.winfo_ismapped():
+                self.lbl_rest_theirs.pack_forget()
+                relayout = True
+
             if not self.lbl_tz2.winfo_ismapped():
                 self.lbl_tz2.pack(anchor="e")
                 self.lbl_tz2_name.pack(anchor="e")
@@ -1691,6 +1760,7 @@ class ClockApp:
             self.lbl_tz2.pack_forget()
             self.lbl_tz2_name.pack_forget()
             self.lbl_tz2_date.pack_forget()
+            self.lbl_rest_theirs.pack_forget()
             relayout = True
 
         # 🔄 没有第二时区时置灰（点了也没意义）
