@@ -1478,7 +1478,9 @@ class ClockApp:
             win_set_pos(get_hwnd(self.root), _HWND_BOTTOM,
                         _SWP_NOMOVE | _SWP_NOSIZE | _SWP_NOACTIVATE)
         self.btn_pin.config(text=PIN_TEXT_DOWN)
-        self.lbl_hhmm.config(fg="#5b6066")       # 沉底后整点变暗，一眼看出状态
+        # 配色统一交给 refresh()：休息红 > 沉底暗 > 正常银
+        # （不要在这里直接设颜色，否则会把"休息中"的红色盖掉）
+        self.refresh()
 
     def raise_to_top(self):
         self.state.pinned = True
@@ -1498,7 +1500,7 @@ class ClockApp:
         except Exception:                        # noqa: BLE001
             pass
         self.btn_pin.config(text=PIN_TEXT_UP)
-        self.lbl_hhmm.config(fg=FG_SILVER)
+        self.refresh()
 
     # ---------- 热键 ----------
     def _start_hotkey(self):
