@@ -16,9 +16,13 @@ Pure Python + tkinter — **no frontend dependencies**, runs from a single file.
 
 ## 📸 截图 / Screenshots
 
-| 中英双语日期 / Chinese + English dates | 12 小时制 / 12-hour clock with AM/PM |
+| 中英双语日期 / Chinese + English dates | 12 小时制 / 12-hour clock with AM/PM | 
 |---|---|
 | ![zh_en](preview/v5_zh_en.png) | ![12h](preview/v5_12h_ampm.png) |
+
+| 🚨 跨时区休息提醒 / Rest Alert |
+|---|
+| ![rest_alert](preview/v6_rest_alert.png) |
 
 ---
 
@@ -32,7 +36,7 @@ Pure Python + tkinter — **no frontend dependencies**, runs from a single file.
 | 🔄 **双时区一键互换 / One-click swap** | 顶栏 `🔄` 一点，上海 ↔ 洛杉矶 互换（自动记忆）<br>Click `🔄` in the top bar to swap the two zones (remembered) |
 | 🎉 **节假日提醒 / Holiday alerts** | 自动识别时区所属国家；节假日暖橙、周末绿色、调休上班单独标记<br>Country inferred from the time zone; holidays orange, weekends green, makeup workdays flagged |
 | 🍅 **番茄钟 / Pomodoro** | 默认 45 分钟，可自定义，结束提示音 + 自动复位<br>45 min by default, configurable, with sound and auto-reset |
-| ⌨️ **全局快捷键 / Global hotkey** | 默认 `Ctrl+Shift+T` 沉底/置顶，**可在设置面板里直接按键修改**<br>Default `Ctrl+Shift+T` to sink/raise; **rebind by pressing keys in Settings** |
+| ⌨️ **全局快捷键 / Global hotkey** | 默认 `Ctrl+Shift+Alt+T` 沉底/置顶，**可在设置面板里直接按键修改**<br>Default `Ctrl+Shift+Alt+T` to sink/raise; **rebind by pressing keys in Settings** |
 | 💾 **配置持久化 / Persistence** | 语言、时区、快捷键、窗口位置全部自动保存<br>Language, zones, hotkey and window position are all saved automatically |
 
 ---
