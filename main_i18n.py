@@ -1651,10 +1651,12 @@ class ClockApp:
 
         # 主时区是否在休息时段
         rest1 = is_resting(now)
-        if not st.pinned:
+        # ★ 优先级：休息红 > 沉底暗 > 正常银
+        #   沉底只是"不想挡视线"，不代表不关心休息状态，所以红色必须保留。
+        if rest1:
+            self.lbl_hhmm.config(fg=COLOR_REST)          # 休息中 → 永远红
+        elif not st.pinned:
             self.lbl_hhmm.config(fg="#5b6066")           # 已沉底 → 变暗
-        elif rest1:
-            self.lbl_hhmm.config(fg=COLOR_REST)          # 休息中 → 变红
         else:
             self.lbl_hhmm.config(fg=FG_SILVER)
 
