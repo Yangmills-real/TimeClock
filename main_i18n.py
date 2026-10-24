@@ -407,22 +407,37 @@ LANGUAGE_DICT = {
 _EXTRA_I18N = {
     "zh": {"hotkey": "全局快捷键", "press_keys": "按下组合键…",
            "hotkey_off": "（未启用）", "need_modifier": "需带 Ctrl/Alt/Shift",
-           "rest_mine": "我方可能在休息", "rest_theirs": "对方可能在休息"},
+           "rest_mine": "我方可能在休息", "rest_theirs": "对方可能在休息",
+           "menu_refresh": "立即刷新", "menu_sink": "沉底",
+           "menu_raise": "置顶", "menu_settings": "设置…",
+           "menu_quit": "退出"},
     "en": {"hotkey": "Global hotkey", "press_keys": "Press keys…",
            "hotkey_off": "(disabled)", "need_modifier": "Need Ctrl/Alt/Shift",
-           "rest_mine": "You may be resting", "rest_theirs": "They may be resting"},
+           "rest_mine": "You may be resting", "rest_theirs": "They may be resting",
+           "menu_refresh": "Refresh now", "menu_sink": "Sink to bottom",
+           "menu_raise": "Always on top", "menu_settings": "Settings…",
+           "menu_quit": "Quit"},
     "fr": {"hotkey": "Raccourci global", "press_keys": "Appuyez…",
            "hotkey_off": "(désactivé)", "need_modifier": "Avec Ctrl/Alt/Shift",
            "rest_mine": "Vous vous reposez peut-être",
-           "rest_theirs": "L'autre se repose peut-être"},
+           "rest_theirs": "L'autre se repose peut-être",
+           "menu_refresh": "Actualiser", "menu_sink": "Envoyer au fond",
+           "menu_raise": "Toujours au-dessus", "menu_settings": "Paramètres…",
+           "menu_quit": "Quitter"},
     "ru": {"hotkey": "Глобальная горячая клавиша", "press_keys": "Нажмите…",
            "hotkey_off": "(отключено)", "need_modifier": "Нужен Ctrl/Alt/Shift",
            "rest_mine": "Возможно, вы отдыхаете",
-           "rest_theirs": "Возможно, они отдыхают"},
+           "rest_theirs": "Возможно, они отдыхают",
+           "menu_refresh": "Обновить", "menu_sink": "В самый низ",
+           "menu_raise": "Поверх всех", "menu_settings": "Настройки…",
+           "menu_quit": "Выход"},
     "es": {"hotkey": "Atajo global", "press_keys": "Pulsa teclas…",
            "hotkey_off": "(desactivado)", "need_modifier": "Con Ctrl/Alt/Shift",
            "rest_mine": "Quizás estés descansando",
-           "rest_theirs": "Quizás esté descansando"},
+           "rest_theirs": "Quizás esté descansando",
+           "menu_refresh": "Actualizar", "menu_sink": "Enviar al fondo",
+           "menu_raise": "Siempre visible", "menu_settings": "Ajustes…",
+           "menu_quit": "Salir"},
 }
 for _k, _v in _EXTRA_I18N.items():
     LANGUAGE_DICT.setdefault(_k, {}).update(_v)
@@ -1411,6 +1426,7 @@ class ClockApp:
                   self.lbl_pomo):
             w.bind("<Button-1>", self._start_drag)
             w.bind("<B1-Motion>", self._on_drag)
+            w.bind("<Button-3>", self._show_menu)      # 右键菜单
 
         self._reset_pomo_state()
 
@@ -2149,6 +2165,48 @@ class ClockApp:
         combo.bind("<KP_Enter>", on_return)
         combo.bind("<Escape>", on_escape)
         return combo
+
+    # ---------- 右键菜单 ----------
+    def _make_menu(self):
+        """
+        每次都重新构建：这样语言 / 快捷键 / 置顶状态改了，菜单立刻同步。
+        返回 tk.Menu（供 _show_menu 和测试使用）。
+        """
+        p = self.state.primary
+        m = tk.Menu(self.root, tearoff=0)
+        m.add_command(label=t("menu_refresh", p),
+                      command=self._menu_refresh)
+        m.add_command(label=t("menu_settings", p),
+                      command=self.open_settings)
+        m.add_separator()
+        # 置顶/沉底二选一，并在括号里显示当前快捷键
+        hk = self._hotkey_display()
+        if self.state.pinned:
+            label = "%s (%s)" % (t("menu_sink", p), hk)
+            m.add_command(label=label, command=self.sink_to_bottom)
+        else:
+            label = "%s (%s)" % (t("menu_raise", p), hk)
+            m.add_command(label=label, command=self.raise_to_top)
+        m.add_separator()
+        m.add_command(label=t("menu_quit", p), command=self.close)
+        return m
+
+    def _menu_refresh(self):
+        """立即刷新一次（不用等下一个 200ms 周期）"""
+        try:
+            self.refresh()
+        except Exception:                        # noqa: BLE001
+            pass
+
+    def _show_menu(self, event):
+        m = self._make_menu()
+        try:
+            m.tk_popup(event.x_root, event.y_root)
+        finally:
+            try:
+                m.grab_release()
+            except Exception:                    # noqa: BLE001
+                pass
 
     def swap_zones(self):
         """
